@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h> 
 
-
-int width, height;
+int width, height, mines;
 
 typedef struct {
 	unsigned int hasMine : 1;
@@ -21,6 +21,7 @@ int main(void) {
 		printf("Invalid size, must be 1-100\n");
 		return 1;
 	}
+	mines = (width * height) / 10;
 
 	// memory for cells
 	Cell* cells = (Cell*)malloc(height * width * sizeof(Cell));
@@ -38,11 +39,24 @@ int main(void) {
 			cells[index].nearMines = 0;
 		}
 	}
+	// mine placing
+	srand(time(NULL));
+	int minesplaced = 0;
+	while (minesplaced < mines) {
+		int i = rand() % height;
+		int j = rand() % width;
+		int index = i * width + j;
+		if (!cells[index].hasMine) {
+			cells[index].hasMine = 1;
+			minesplaced++;
+		}
+	}
+
 
 
 	printf("Field size set to %d x %d, init succesful\n", width, height);
 	free(cells);
-	getchar();
+	return 0;
 }
 
 
