@@ -13,6 +13,27 @@ typedef struct {
 	int nearMines;
 } Cell;
 
+void printField(Cell* cells) {
+	system("cls");
+	printf("  ");
+	for (int j = 0; j < width; j++) printf("%d ", j);
+	printf("\n");
+	for (int i = 0; i < height; i++) {
+		printf("%d ", i);
+		for (int j = 0; j < width; j++) {
+			int index = i * width + j;
+			char sym = '#';
+			if (cells[index].isFlagged) sym = '🚩';
+			else if (cells[index].isOpen) {
+				if (cells[index].hasMine) sym = '💣';
+				else sym = '0' + cells[index].nearMines;
+			}
+			printf(" %c ", sym);
+		}
+		printf("\n");
+	}
+}
+
 int main(void) {
 	printf("Enter width and height (eg: 9 9): ");
 	scanf("%d %d", &width, &height);
@@ -73,7 +94,11 @@ int main(void) {
 		}
 	}
 
+
 	printf("Field size set to %d x %d, init succesful\n", width, height);
+	printField(cells);
+
+
 	free(cells);
 	return 0;
 }
