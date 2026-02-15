@@ -21,7 +21,7 @@ int main(void) {
 		printf("Invalid size, must be 1-100\n");
 		return 1;
 	}
-	mines = (width * height) / 10;
+	mines = (width * height) / 10; // 10% of field
 
 	// memory for cells
 	Cell* cells = (Cell*)malloc(height * width * sizeof(Cell));
@@ -52,7 +52,26 @@ int main(void) {
 		}
 	}
 
+	// nearMines
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			int index = i * width + j;
+			if (cells[index].hasMine) continue;
+			int count = 0;
 
+			for (int i2 = -1; i2 <= 1; i2++) {
+				for (int j2 = -1; j2 <= 1; j2++) {
+					int ni = i + i2;
+					int nj = j + j2;
+					if (ni >= 0 && ni < height && nj >= 0 && nj < width) {
+						int nindex = ni * width + nj;
+						if (cells[nindex].hasMine) count++;
+					}
+				}
+			}
+			cells[index].nearMines = count;
+		}
+	}
 
 	printf("Field size set to %d x %d, init succesful\n", width, height);
 	free(cells);
