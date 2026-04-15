@@ -13,8 +13,26 @@ typedef struct {
 	int nearMines;
 } Cell;
 
-void printField(Cell* cells) {
+void openCell(Cell* cells, int x, int y) {
+	int index = y * width + x;
+	if (cells[index].isOpen || cells[index].isFlagged) return;
+	cells[index].isOpen = 1;
+	if (cells[index].hasMine) return;
+	if (cells[index].nearMines == 0) {
+		for (int di = -1; di <= 1; di++) {
+			for (int dj = -1; dj <= 1; dj++) {
+				int nx = x + dj, ny = y + di;
+				if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+					openCell(cells, nx, ny);
+				}
+			}
+		}
+	}
+}
+
+void printField(Cell* cells, int cursorX, int cursorY) {
 	system("cls");
+	printf("Minesweeper %dx%d\n", width, height);
 	printf("  ");
 	for (int j = 0; j < width; j++) printf("%d ", j);
 	printf("\n");
@@ -23,16 +41,19 @@ void printField(Cell* cells) {
 		for (int j = 0; j < width; j++) {
 			int index = i * width + j;
 			char sym = '#';
-			if (cells[index].isFlagged) sym = '🚩';
+			if (cells[index].isFlagged) sym = 'F';
 			else if (cells[index].isOpen) {
-				if (cells[index].hasMine) sym = '💣';
+				if (cells[index].hasMine) sym = '*';
 				else sym = '0' + cells[index].nearMines;
 			}
-			printf(" %c ", sym);
+			if (i == cursorY && j == cursorX) printf("[%c]", sym);
+			else printf(" %c ", sym);
 		}
 		printf("\n");
 	}
+	printf("Arrows: move, Space: open, F: flag, Q: quit\n");
 }
+
 
 int main(void) {
 	printf("Enter width and height (eg: 9 9): ");
@@ -94,10 +115,53 @@ int main(void) {
 		}
 	}
 
+	int cursorX = 0, cursorY = 0;
+	int gameOver = 0, win = 0;
 
-	printf("Field size set to %d x %d, init succesful\n", width, height);
-	printField(cells);
+	while (!gameOver) {
+		printField(cells, cursorX, cursorY);
+		int key = _getch();
+		if (key == 224) {
+			key = _getch();
+			if (key == 72 && cursorY > 0) cursorY--;
+			else if (key == 80 && cursorY < height - 1) cursorY++;
+			else if (key == 75 && cursorX > 0) cursorX--;
+			else if (key == 77 && cursorX < width - 1) cursorX++;
+		}
+		else if (key == ' ') {
+			int index = cursorY * width + cursorX;
+			if (!cells[index].isOpen && !cells[index].isFlagged) {
+				openCell(cells, cursorX, cursorY);
+				if (cells[index].hasMine) {
+					gameOver = 1;
+					for (int i = 0; i < height * width; i++) {
+						if (cells[i].hasMine) cells[i].isOpen = 1;
+					}
+				}
+				else {
+					win = 1;
+					for (int i = 0; i < height * width; i++) {
+						if (!cells[i].hasMine && !cells[i].isOpen) {
+							win = 0;
+							break;
+						}
+					}
+					if (win) gameOver = 1;
+				}
+			}
+		}
+		else if (key == 'f' || key == 'F') {
+			int index = cursorY * width + cursorX;
+			if (!cells[index].isOpen) {
+				cells[index].isFlagged = !cells[index].isFlagged;
+			}
+		}
+		else if (key == 'q' || key == 'Q') break;
+	}
 
+	printField(cells, cursorX, cursorY);
+	if (win) printf("Win!\n");
+	else printf("Game over...\n");
 
 	free(cells);
 	return 0;
