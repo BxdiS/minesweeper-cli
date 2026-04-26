@@ -37,15 +37,14 @@ void openCell(Cell* cells, int x, int y) {
 void printField(Cell* cells, int cursorX, int cursorY) {
 	system("cls");
 	printf("Minesweeper %dx%d\n    ", width, height);
-	for (int j = 0; j < width; j++) printf("%-3d", j);
+	for (int j = 0; j < width; j++) printf("%-3d", j + 1);
 	printf("\n");
 
 	for (int i = 0; i < height; i++) {
-		printf("%2d |", i);
+		printf("%2d  ", i + 1);
 		for (int j = 0; j < width; j++) {
 			int index = i * width + j;
 
-			// Выбор цвета и символа
 			char* color = RES;
 			char sym = '#';
 
@@ -75,7 +74,7 @@ void printField(Cell* cells, int cursorX, int cursorY) {
 
 int main(void) {
 	system(""); // Включает поддержку ANSI цветов в Windows 10+
-	printf("Enter width and height (max: 32 32): ");
+	printf("Enter width and height (max 32 32): ");
 	if (scanf("%d %d", &width, &height) != 2) return 1;
 
 	if (width > 32) width = 32;
