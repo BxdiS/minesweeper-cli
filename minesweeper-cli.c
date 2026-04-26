@@ -34,7 +34,7 @@ void openCell(Cell* cells, int x, int y) {
 	}
 }
 
-void printField(Cell* cells, int cursorX, int cursorY) {
+void printField(Cell* cells, int cursorX, int cursorY, int gameOver) {
 	system("cls");
 	printf("Minesweeper %dx%d\n    ", width, height);
 	for (int j = 0; j < width; j++) printf("%-3d", j + 1);
@@ -64,12 +64,12 @@ void printField(Cell* cells, int cursorX, int cursorY) {
 				color = GRA; sym = '#'; // Закрытая - Серая
 			}
 
-			if (i == cursorY && j == cursorX) printf("[%s%c%s]", color, sym, RES);
+			if (!gameOver && i == cursorY && j == cursorX) printf("[%s%c%s]", color, sym, RES);
 			else printf(" %s%c%s ", color, sym, RES);
 		}
 		printf("\n");
 	}
-	printf("Arrows: move, Space: open, F: flag, Q: quit\n");
+	if (!gameOver) printf("Arrows - move\nSpace - open\nF - place flag\nQ - quit\n");
 }
 
 int main(void) {
@@ -107,7 +107,7 @@ int main(void) {
 
 	int cursorX = 0, cursorY = 0, gameOver = 0, win = 0;
 	while (!gameOver) {
-		printField(cells, cursorX, cursorY);
+		printField(cells, cursorX, cursorY, gameOver);
 		int key = _getch();
 		if (key == 224) {
 			key = _getch();
@@ -139,8 +139,9 @@ int main(void) {
 		else if (key == 'q' || key == 'Q') break;
 	}
 
-	printField(cells, cursorX, cursorY);
+	printField(cells, cursorX, cursorY, gameOver);
 	printf(win ? "Win!\n" : "Game over...\n");
 	free(cells);
+	_getch();
 	return 0;
 }
