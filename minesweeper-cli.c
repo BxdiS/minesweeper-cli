@@ -44,7 +44,6 @@ void printField(Cell* cells, int cursorX, int cursorY, int gameOver) {
 		printf("%2d  ", i + 1);
 		for (int j = 0; j < width; j++) {
 			int index = i * width + j;
-
 			char* color = RES;
 			char sym = '#';
 
@@ -69,79 +68,131 @@ void printField(Cell* cells, int cursorX, int cursorY, int gameOver) {
 		}
 		printf("\n");
 	}
-	if (!gameOver) printf("Arrows - move\nSpace - open\nF - place flag\nQ - quit\n");
+	if (!gameOver) printf("Arrows - move\nSpace - open\nF - place flag\nQ - quit to menu\n");
+}
+
+int showMainMenu() {
+	int selection = 0;
+	while (1) {
+		system("cls");
+		printf("===========================\n");
+		printf("    MINESWEEPER GAME\n");
+		printf("===========================\n\n");
+
+		if (selection == 0) printf("    " RED "> PLAY <" RES "\n");
+		else printf("      PLAY\n");
+
+		if (selection == 1) printf("    " RED "> QUIT <" RES "\n");
+		else printf("      QUIT\n");
+
+		int key = _getch();
+		if (key == 224) {
+			key = _getch();
+			if (key == 72) selection = 0; // Up
+			else if (key == 80) selection = 1; // Down
+		}
+		else if (key == 'q' || key == 'Q') return 1;
+		else if (key == 13) return selection; // Enter
+	}
 }
 
 int main(void) {
 	system(""); // Включает поддержку ANSI цветов в Windows 10+
-	printf("Enter width and height (max 32 32): ");
-	if (scanf("%d %d", &width, &height) != 2) return 1;
 
-	if (width > 32) width = 32;
-	if (height > 32) height = 32;
-	if (width < 1) width = 1;
-	if (height < 1) height = 1;
+	while (1) {
+		if (showMainMenu() == 1) return 0;
 
-	mines = (width * height) / 10;
-	Cell* cells = (Cell*)calloc(height * width, sizeof(Cell));
+		system("cls");
+		printf("Enter width and height (max 32 32): ");
+		if (scanf("%d %d", &width, &height) != 2) return 1;
 
-	srand(time(NULL));
-	int placed = 0;
-	while (placed < mines) {
-		int idx = rand() % (width * height);
-		if (!cells[idx].hasMine) { cells[idx].hasMine = 1; placed++; }
-	}
+		if (width > 32) width = 32;
+		if (height > 32) height = 32;
+		if (width < 1) width = 1;
+		if (height < 1) height = 1;
 
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < width; j++) {
-			if (cells[i * width + j].hasMine) continue;
-			for (int di = -1; di <= 1; di++) {
-				for (int dj = -1; dj <= 1; dj++) {
-					int ni = i + di, nj = j + dj;
-					if (ni >= 0 && ni < height && nj >= 0 && nj < width && cells[ni * width + nj].hasMine)
-						cells[i * width + j].nearMines++;
+		int backToMenu = 0;
+		while (!backToMenu) {
+			mines = (width * height) / 10;
+			Cell* cells = (Cell*)calloc(height * width, sizeof(Cell));
+
+			srand((unsigned int)time(NULL));
+			int placed = 0;
+			while (placed < mines) {
+				int idx = rand() % (width * height);
+				if (!cells[idx].hasMine) { cells[idx].hasMine = 1; placed++; }
+			}
+
+			for (int i = 0; i < height; i++) {
+				for (int j = 0; j < width; j++) {
+					if (cells[i * width + j].hasMine) continue;
+					for (int di = -1; di <= 1; di++) {
+						for (int dj = -1; dj <= 1; dj++) {
+							int ni = i + di, nj = j + dj;
+							if (ni >= 0 && ni < height && nj >= 0 && nj < width && cells[ni * width + nj].hasMine)
+								cells[i * width + j].nearMines++;
+						}
+					}
 				}
 			}
-		}
-	}
 
-	int cursorX = 0, cursorY = 0, gameOver = 0, win = 0;
-	while (!gameOver) {
-		printField(cells, cursorX, cursorY, gameOver);
-		int key = _getch();
-		if (key == 224) {
-			key = _getch();
-			if (key == 72 && cursorY > 0) cursorY--;
-			else if (key == 80 && cursorY < height - 1) cursorY++;
-			else if (key == 75 && cursorX > 0) cursorX--;
-			else if (key == 77 && cursorX < width - 1) cursorX++;
-		}
-		else if (key == ' ') {
-			int idx = cursorY * width + cursorX;
-			if (!cells[idx].isOpen && !cells[idx].isFlagged) {
-				openCell(cells, cursorX, cursorY);
-				if (cells[idx].hasMine) {
+			int cursorX = 0, cursorY = 0, gameOver = 0, win = 0;
+			while (!gameOver) {
+				printField(cells, cursorX, cursorY, gameOver);
+				int key = _getch();
+				if (key == 224) {
+					key = _getch();
+					if (key == 72 && cursorY > 0) cursorY--;
+					else if (key == 80 && cursorY < height - 1) cursorY++;
+					else if (key == 75 && cursorX > 0) cursorX--;
+					else if (key == 77 && cursorX < width - 1) cursorX++;
+				}
+				else if (key == ' ') {
+					int idx = cursorY * width + cursorX;
+					if (!cells[idx].isOpen && !cells[idx].isFlagged) {
+						openCell(cells, cursorX, cursorY);
+						if (cells[idx].hasMine) {
+							gameOver = 1;
+							for (int i = 0; i < width * height; i++) if (cells[i].hasMine) cells[i].isOpen = 1;
+						}
+						else {
+							win = 1;
+							for (int i = 0; i < width * height; i++)
+								if (!cells[i].hasMine && !cells[i].isOpen) { win = 0; break; }
+							if (win) gameOver = 1;
+						}
+					}
+				}
+				else if (key == 'f' || key == 'F') {
+					int idx = cursorY * width + cursorX;
+					if (!cells[idx].isOpen) cells[idx].isFlagged = !cells[idx].isFlagged;
+				}
+				else if (key == 'q' || key == 'Q') {
 					gameOver = 1;
-					for (int i = 0; i < width * height; i++) if (cells[i].hasMine) cells[i].isOpen = 1;
-				}
-				else {
-					win = 1;
-					for (int i = 0; i < width * height; i++)
-						if (!cells[i].hasMine && !cells[i].isOpen) { win = 0; break; }
-					if (win) gameOver = 1;
+					backToMenu = 1;
 				}
 			}
-		}
-		else if (key == 'f' || key == 'F') {
-			int idx = cursorY * width + cursorX;
-			if (!cells[idx].isOpen) cells[idx].isFlagged = !cells[idx].isFlagged;
-		}
-		else if (key == 'q' || key == 'Q') break;
-	}
 
-	printField(cells, cursorX, cursorY, gameOver);
-	printf(win ? "Win!\n" : "Game over...\n");
-	free(cells);
-	_getch();
+			if (!backToMenu) {
+				printField(cells, cursorX, cursorY, gameOver);
+				printf(win ? "Win!\n" : "Game over...\n");
+				printf("\nF -  fast restart (with same size)\R - restart (enter new size)\nQ - quit to menu\n");
+
+				while (1) {
+					int choice = _getch();
+					if (choice == 'f' || choice == 'F') break;
+					if (choice == 'r' || choice == 'R') {
+						system("cls");
+						printf("Enter width and height (max 32 32): ");
+						scanf("%d %d", &width, &height);
+						if (width > 32) width = 32; if (height > 32) height = 32;
+						break;
+					}
+					if (choice == 'q' || choice == 'Q') { backToMenu = 1; break; }
+				}
+			}
+			free(cells);
+		}
+	}
 	return 0;
 }
