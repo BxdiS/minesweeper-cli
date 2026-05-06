@@ -5,7 +5,6 @@
 #include <conio.h>
 #include <string.h>
 
-// Коды цветов
 #define RED "\x1b[31m"
 #define YEL "\x1b[33m"
 #define GRA "\x1b[90m"
@@ -13,7 +12,7 @@
 
 int width, height, mines;
 char sideArt[32][256];
-int sideArtLines = 0; // Переменная для хранения реального количества строк в арте
+int sideArtLines = 0;
 
 typedef struct {
 	unsigned int hasMine : 1;
@@ -21,6 +20,43 @@ typedef struct {
 	unsigned int isFlagged : 1;
 	int nearMines;
 } Cell;
+
+// Вспомогательная функция для печати пробелов (отступов)
+void printPadding(int count) {
+	for (int i = 0; i < count; i++) printf(" ");
+}
+
+// Функция для получения визуальной длины строки (без учета ANSI-кодов)
+int getVisibleLength(const char* str) {
+	int len = 0;
+	int i = 0;
+	while (str[i] != '\0') {
+		if (str[i] == '\x1b') { // Пропускаем ANSI последовательности
+			while (str[i] != 'm' && str[i] != '\0') i++;
+			if (str[i] == 'm') i++;
+		}
+		else {
+			len++;
+			i++;
+		}
+	}
+	return len;
+}
+
+// Загрузка арта и подсчет его макс. ширины
+int getFileMaxWidth(const char* filename) {
+	FILE* f = fopen(filename, "r");
+	if (!f) return 0;
+	char line[256];
+	int maxW = 0;
+	while (fgets(line, sizeof(line), f)) {
+		line[strcspn(line, "\r\n")] = 0;
+		int currentW = getVisibleLength(line);
+		if (currentW > maxW) maxW = currentW;
+	}
+	fclose(f);
+	return maxW;
+}
 
 void loadSideArt(const char* filename) {
 	for (int i = 0; i < 32; i++) sideArt[i][0] = '\0';
@@ -60,22 +96,20 @@ void openCell(Cell* cells, int x, int y) {
 
 void printField(Cell* cells, int cursorX, int cursorY, int gameOver, int win) {
 	system("cls");
+	int fieldDisplayWidth = 4 + (width * 3); // Вычисляем ширину поля в символах
+
 	printf("Minesweeper %dx%d\n    ", width, height);
 	for (int j = 0; j < width; j++) printf("%-3d", j + 1);
 	printf("\n");
 
-	// Определяем, сколько строк всего нужно напечатать
-	int maxRows = height;
-	if (gameOver && sideArtLines > maxRows) maxRows = sideArtLines;
+	int maxRows = (gameOver && sideArtLines > height) ? sideArtLines : height;
 
 	for (int i = 0; i < maxRows; i++) {
 		if (i < height) {
 			printf("%2d  ", i + 1);
 			for (int j = 0; j < width; j++) {
 				int index = i * width + j;
-				char* color = RES;
-				char sym = '#';
-
+				char* color = RES; char sym = '#';
 				if (cells[index].isFlagged) { color = YEL; sym = 'F'; }
 				else if (cells[index].isOpen) {
 					if (cells[index].hasMine) { color = RED; sym = '*'; }
@@ -85,37 +119,54 @@ void printField(Cell* cells, int cursorX, int cursorY, int gameOver, int win) {
 					}
 				}
 				else { color = GRA; sym = '#'; }
-
 				if (!gameOver && i == cursorY && j == cursorX) printf("[%s%c%s]", color, sym, RES);
 				else printf(" %s%c%s ", color, sym, RES);
 			}
 		}
 		else {
-			// Если поле закончилось, а арт еще нет — печатаем пустые отступы вместо клеток
-			printf("    "); // отступ для номера строки
-			for (int j = 0; j < width; j++) printf("   "); // отступы для ячеек
+			printPadding(fieldDisplayWidth);
 		}
 
-		// Печать арта справа
 		if (gameOver && i < sideArtLines && sideArt[i][0] != '\0') {
 			printf("   %s%s" RES, (win ? YEL : RED), sideArt[i]);
 		}
 		printf("\n");
 	}
 
-	if (!gameOver) printf("Arrows - move\nSpace - open\nF - place flag\nQ - quit to menu\n");
+	// Центрирование кнопок управления под полем
+	const char* lines[] = { "F - fast restart", "R - new size", "Q - quit to menu" };
+	const char* playLines[] = { "Arrows - move", "Space - open", "F - place flag", "Q - quit to menu" };
+
+	printf("\n");
+	int numLines = gameOver ? 3 : 4;
+	for (int i = 0; i < numLines; i++) {
+		const char* text = gameOver ? lines[i] : playLines[i];
+		printPadding((fieldDisplayWidth - (int)strlen(text)) / 2);
+		printf("%s\n", text);
+	}
 }
 
 int showMainMenu() {
 	int selection = 0;
+	int titleWidth = getFileMaxWidth("title.txt");
+	if (titleWidth < 20) titleWidth = 20; // Минимум для красоты
+
 	while (1) {
 		system("cls");
 		drawImage("title.txt");
 		printf("\n");
-		if (selection == 0) printf("    " RED "> PLAY <" RES "\n");
-		else printf("      PLAY\n");
-		if (selection == 1) printf("    " RED "> QUIT <" RES "\n");
-		else printf("      QUIT\n");
+
+		// Центрирование PLAY
+		const char* playTxt = selection == 0 ? "> PLAY <" : "  PLAY  ";
+		printPadding((titleWidth - (int)strlen(playTxt)) / 2);
+		if (selection == 0) printf(RED "%s" RES "\n", playTxt);
+		else printf("%s\n", playTxt);
+
+		// Центрирование QUIT
+		const char* quitTxt = selection == 1 ? "> QUIT <" : "  QUIT  ";
+		printPadding((titleWidth - (int)strlen(quitTxt)) / 2);
+		if (selection == 1) printf(RED "%s" RES "\n", quitTxt);
+		else printf("%s\n", quitTxt);
 
 		int key = _getch();
 		if (key == 224) {
@@ -132,7 +183,6 @@ int main(void) {
 	system("");
 	while (1) {
 		if (showMainMenu() == 1) return 0;
-
 		system("cls");
 		printf("Enter width and height (max 32 32): ");
 		if (scanf("%d %d", &width, &height) != 2) return 1;
@@ -188,10 +238,7 @@ int main(void) {
 							win = 1;
 							for (int i = 0; i < width * height; i++)
 								if (!cells[i].hasMine && !cells[i].isOpen) { win = 0; break; }
-							if (win) {
-								gameOver = 1;
-								loadSideArt("win.txt");
-							}
+							if (win) { gameOver = 1; loadSideArt("win.txt"); }
 						}
 					}
 				}
@@ -199,20 +246,17 @@ int main(void) {
 					int idx = cursorY * width + cursorX;
 					if (!cells[idx].isOpen) cells[idx].isFlagged = !cells[idx].isFlagged;
 				}
-				else if (key == 'q' || key == 'Q') {
-					gameOver = 1; backToMenu = 1;
-				}
+				else if (key == 'q' || key == 'Q') { gameOver = 1; backToMenu = 1; }
 			}
 
 			if (!backToMenu) {
 				printField(cells, cursorX, cursorY, gameOver, win);
-				printf("\nF - fast restart\nR - new size\nQ - quit to menu\n");
 				while (1) {
 					int choice = _getch();
 					if (choice == 'f' || choice == 'F') break;
 					if (choice == 'r' || choice == 'R') {
 						system("cls");
-						printf("Enter width and height (max 32 32): ");
+						printf("Enter width and height: ");
 						scanf("%d %d", &width, &height);
 						width = (width > 32) ? 32 : (width < 1 ? 1 : width);
 						height = (height > 32) ? 32 : (height < 1 ? 1 : height);
