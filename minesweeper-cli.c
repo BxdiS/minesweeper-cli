@@ -21,6 +21,45 @@ typedef struct {
 	int nearMines;
 } Cell;
 
+typedef struct RecordNode {
+	char name[20];
+	int w, h;
+	double time;
+	struct RecordNode* next;
+} RecordNode;
+
+RecordNode* recordsHead = NULL;
+
+void addRecordToList(const char* name, int w, int h, double time) {
+	RecordNode* newNode = (RecordNode*)malloc(sizeof(RecordNode));
+	if (!newNode) return;
+	strcpy(newNode->name, name);
+	newNode->w = w; newNode->h = h; newNode->time = time;
+	newNode->next = recordsHead;
+	recordsHead = newNode;
+}
+
+void saveRecords() {
+	FILE* f = fopen("records.txt", "w");
+	if (!f) return;
+	RecordNode* curr = recordsHead;
+	while (curr) {
+		fprintf(f, "%s %d %d %.2f\n", curr->name, curr->w, curr->h, curr->time);
+		curr = curr->next;
+	}
+	fclose(f);
+}
+
+void loadRecords() {
+	FILE* f = fopen("records.txt", "r");
+	if (!f) return;
+	char name[20]; int w, h; double t;
+	while (fscanf(f, "%19s %d %d %lf", name, &w, &h, &t) == 4) {
+		addRecordToList(name, w, h, t);
+	}
+	fclose(f);
+}
+
 // Вспомогательная функция для печати пробелов (отступов)
 void printPadding(int count) {
 	for (int i = 0; i < count; i++) printf(" ");
@@ -56,6 +95,25 @@ int getFileMaxWidth(const char* filename) {
 	}
 	fclose(f);
 	return maxW;
+}
+
+void showRecordsScreen() {
+	system("cls");
+	int titleWidth = getFileMaxWidth("title.txt");
+	if (titleWidth < 40) titleWidth = 40;
+
+	printf(YEL "=== HALL OF FAME ===\n\n" RES);
+	printf("%-15s | %-10s | %-10s\n", "NAME", "SIZE", "TIME");
+	printf("------------------------------------------\n");
+
+	RecordNode* curr = recordsHead;
+	if (!curr) printf("No records yet!\n");
+	while (curr) {
+		printf("%-15s | %2dx%-7d | %.2fs\n", curr->name, curr->w, curr->h, curr->time);
+		curr = curr->next;
+	}
+	printf("\nPress any key to return...");
+	_getch();
 }
 
 void loadSideArt(const char* filename) {
@@ -156,33 +214,39 @@ int showMainMenu() {
 		drawImage("title.txt");
 		printf("\n");
 
-		// Центрирование PLAY
-		const char* playTxt = selection == 0 ? "> PLAY <" : "  PLAY  ";
-		printPadding((titleWidth - (int)strlen(playTxt)) / 2);
-		if (selection == 0) printf(RED "%s" RES "\n", playTxt);
-		else printf("%s\n", playTxt);
+		const char* menuItems[] = { "PLAY", "RECORDS", "QUIT" };
+		for (int i = 0; i < 3; i++) {
+			char itemText[30];
+			if (selection == i) sprintf(itemText, "> %s <", menuItems[i]);
+			else sprintf(itemText, "  %s  ", menuItems[i]);
 
-		// Центрирование QUIT
-		const char* quitTxt = selection == 1 ? "> QUIT <" : "  QUIT  ";
-		printPadding((titleWidth - (int)strlen(quitTxt)) / 2);
-		if (selection == 1) printf(RED "%s" RES "\n", quitTxt);
-		else printf("%s\n", quitTxt);
+			printPadding((titleWidth - (int)strlen(itemText)) / 2);
+			if (selection == i) printf(RED "%s" RES "\n", itemText);
+			else printf("%s\n", itemText);
+		}
 
 		int key = _getch();
 		if (key == 224) {
 			key = _getch();
-			if (key == 72) selection = 0;
-			else if (key == 80) selection = 1;
+			if (key == 72) selection = (selection + 2) % 3;
+			else if (key == 80) selection = (selection + 1) % 3;
 		}
-		else if (key == 'q' || key == 'Q') return 1;
+		else if (key == 'q' || key == 'Q') return 2;
 		else if (key == 13) return selection;
 	}
 }
 
 int main(void) {
 	system("");
+	loadRecords();
 	while (1) {
-		if (showMainMenu() == 1) return 0;
+		int choice = showMainMenu();
+		if (choice == 2) break;
+		if (choice == 1) {
+			showRecordsScreen();
+			continue;
+		}
+
 		system("cls");
 		printf("Enter width and height (max 32 32): ");
 		if (scanf("%d %d", &width, &height) != 2) return 1;
@@ -214,6 +278,7 @@ int main(void) {
 				}
 			}
 
+			time_t start_t = time(NULL);
 			int cursorX = 0, cursorY = 0, gameOver = 0, win = 0;
 			while (!gameOver) {
 				printField(cells, cursorX, cursorY, gameOver, win);
@@ -238,7 +303,18 @@ int main(void) {
 							win = 1;
 							for (int i = 0; i < width * height; i++)
 								if (!cells[i].hasMine && !cells[i].isOpen) { win = 0; break; }
-							if (win) { gameOver = 1; loadSideArt("win.txt"); }
+							if (win) {
+								gameOver = 1;
+								loadSideArt("win.txt");
+								time_t end_t = time(NULL);
+								double total_t = difftime(end_t, start_t);
+								printField(cells, cursorX, cursorY, gameOver, win);
+								printf("\n" YEL "NEW RECORD! Time: %.2fs" RES "\nEnter your name: ", total_t);
+								char playerName[20];
+								scanf("%19s", playerName);
+								addRecordToList(playerName, width, height, total_t);
+								saveRecords();
+							}
 						}
 					}
 				}
