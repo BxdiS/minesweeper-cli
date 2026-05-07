@@ -4,6 +4,21 @@ int width, height, mines;
 char sideArt[32][256];
 int sideArtLines = 0;
 
+int getIdx(int x, int y) {
+	int res;
+#ifndef _M_X64
+	__asm {
+		mov eax, y
+		imul eax, width
+		add eax, x
+		mov res, eax
+	}
+#else
+	res = y * width + x;
+#endif
+	return res;
+}
+
 void printPadding(int count) {
 	for (int i = 0; i < count; i++) printf(" ");
 }
@@ -56,7 +71,7 @@ void drawImage(const char* filename) {
 }
 
 void openCell(Cell* cells, int x, int y) {
-	int index = y * width + x;
+	int index = getIdx(x, y);
 	if (cells[index].isOpen || cells[index].isFlagged) return;
 	cells[index].isOpen = 1;
 	if (cells[index].hasMine) return;
@@ -83,7 +98,7 @@ void printField(Cell* cells, int cursorX, int cursorY, int gameOver, int win) {
 		if (i < height) {
 			printf("%2d  ", i + 1);
 			for (int j = 0; j < width; j++) {
-				int index = i * width + j;
+				int index = getIdx(j, i);
 				char* color = RES; char sym = '#';
 				if (cells[index].isFlagged) { color = YEL; sym = 'F'; }
 				else if (cells[index].isOpen) {

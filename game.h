@@ -2,6 +2,7 @@
 #define GAME_H
 #include "common.h"
 
+int getIdx(int x, int y);
 void printPadding(int count);
 int getVisibleLength(const char* str);
 int getFileMaxWidth(const char* filename);

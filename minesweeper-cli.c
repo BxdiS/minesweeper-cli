@@ -123,7 +123,7 @@ int main(void) {
 					int choice = _getch();
 					if (choice == 'f' || choice == 'F') break;
 					if (choice == 'r' || choice == 'R') {
-						system("cls"); printf("Enter width and height: ");
+						system("cls"); printf("Enter width and height (max 32 32): ");
 						scanf("%d %d", &width, &height);
 						width = (width > 32) ? 32 : (width < 1 ? 1 : width);
 						height = (height > 32) ? 32 : (height < 1 ? 1 : height);
