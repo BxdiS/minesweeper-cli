@@ -18,5 +18,22 @@
     <ClCompile Include="minesweeper-cli.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="records.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="game.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="common.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="records.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="game.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
